@@ -73,7 +73,7 @@ def import_messages(json_path: Path) -> int:
             message_source = "BOT" if is_bot else "USER"
             connection.execute(
                 """
-                INSERT INTO messages (
+                INSERT OR IGNORE INTO messages (
                     message_id, author_id, channel_id, reply_to_message_id,
                     content, content_type, message_source, sent_at
                 )
