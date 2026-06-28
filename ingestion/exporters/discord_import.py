@@ -13,7 +13,7 @@ A reaction's user must exist before the reaction can reference it.
 
 import json
 from pathlib import Path
-
+from ingestion.cleaning.normalize import clean_message_text
 from storage.db import get_connection
 from shared.logging import get_logger
 
@@ -70,6 +70,8 @@ def import_messages(json_path: Path) -> int:
 
 
             # Step 2: insert the message itself.
+
+            cleaned_content = clean_message_text(message["content"])
             message_source = "BOT" if is_bot else "USER"
             connection.execute(
                 """
@@ -84,10 +86,10 @@ def import_messages(json_path: Path) -> int:
                     author_id,
                     channel_id,
                     message.get("reply_to"),
-                    message["content"],
+                    cleaned_content,
                     message_source,
                     message["timestamp"],
-                ),
+                ), 
             )
             imported_count += 1
 
