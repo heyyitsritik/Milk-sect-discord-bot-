@@ -77,3 +77,13 @@ CREATE TABLE IF NOT EXISTS mentions (
     FOREIGN KEY (message_id) REFERENCES messages (message_id),
     FOREIGN KEY (target_user_id) REFERENCES users (user_id)
 );
+
+-- One row per user, holding distilled semantic-memory facts (Phase 6).
+-- Deliberately separate from the vector store — profile lookups are
+-- always a direct, keyed SELECT by user_id, never a similarity search.
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id     TEXT PRIMARY KEY,
+    facts_json  TEXT NOT NULL DEFAULT '{}',
+    updated_at  TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (user_id)
+);
