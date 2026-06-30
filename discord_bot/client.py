@@ -12,7 +12,7 @@ import asyncio
 import discord
 
 from config.settings import settings
-from response.engagement import should_respond
+from response.engagement import should_respond, mark_conversation_active
 from response.delay import sample_reply_delay
 from response.formatting import format_reply
 from retrieval.retriever import retrieve_context
@@ -79,6 +79,7 @@ async def on_message(message: discord.Message):
 
     await message.channel.send(cleaned_reply)
     logger.info("Sent reply: %r", cleaned_reply)
+    mark_conversation_active(str(message.author.id))
 
 if __name__ == "__main__":
     logger.info("Starting Discord client (read-only mode)...")

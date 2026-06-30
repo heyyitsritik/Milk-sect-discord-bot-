@@ -7,19 +7,37 @@ in a busy server should never trigger the expensive retrieval/prompt/
 LLM pipeline at all.
 """
 
+import time
 import random
 
 from shared.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Tunable — per Phase 11, behavior knobs like this should eventually
-# move into config/settings.py so they're adjustable without a code
-# change. For this milestone, a constant here is fine.
 RANDOM_ENGAGEMENT_CHANCE = 0.10
-
 BOT_USER_ID = "persona_bot"  # placeholder until Milestone 14 gives us a real bot user id
 
+# How long (in seconds) a user stays "in active conversation" after the
+# bot last replied to them — during this window, they don't need to
+# @mention the bot again. In-memory only (resets on restart), which is
+# fine: this is short-lived conversational state, not the real memory
+# system from Milestone 8.
+ACTIVE_CONVERSATION_WINDOW_SECONDS = 180  # 3 minutes
+
+_last_reply_time_by_user: dict[str, float] = {}
+
+
+def mark_conversation_active(user_id: str) -> None:
+    """Call this every time the bot actually sends a reply to a user."""
+    _last_reply_time_by_user[user_id] = time.time()
+
+
+def _is_conversation_active(user_id: str) -> bool:
+    last_reply_time = _last_reply_time_by_user.get(user_id)
+    if last_reply_time is None:
+        return False
+    elapsed = time.time() - last_reply_time
+    return elapsed <= ACTIVE_CONVERSATION_WINDOW_SECONDS
 
 def should_respond(message_content: str, author_id: str, mentions_bot: bool, is_reply_to_bot: bool) -> bool:
     """
@@ -32,6 +50,10 @@ def should_respond(message_content: str, author_id: str, mentions_bot: bool, is_
 
     if mentions_bot or is_reply_to_bot:
         logger.info("Responding — directly mentioned or replied to")
+        return True
+
+    if _is_conversation_active(author_id):
+        logger.info("Responding — user is in an active conversation window")
         return True
 
     roll = random.random()
